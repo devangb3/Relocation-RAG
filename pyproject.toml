@@ -3,7 +3,10 @@ name = "relocation-rag"
 version = "0.1.0"
 description = "Question answering over a company relocation reimbursement policy."
 requires-python = ">=3.13"
-dependencies = []
+dependencies = [
+    "chromadb>=1.5.9",
+    "sentence-transformers>=6.3.0",
+]
 
 [dependency-groups]
 dev = [
