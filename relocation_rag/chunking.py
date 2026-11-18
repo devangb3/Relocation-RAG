@@ -4,7 +4,9 @@ import re
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
+import logging
 
+logger = logging.getLogger(__name__)
 
 @dataclass(frozen=True)
 class Chunk:
@@ -20,6 +22,7 @@ def chunk_policy(path: Path) -> list[Chunk]:
     header, *sections = re.split(r"^## ", markdown, flags=re.MULTILINE)
     date = re.search(r"\| Effective (.+)$", header, re.MULTILINE)
     if not date or not sections:
+        logger.error(f"{path}: expected an effective date and numbered sections")
         raise ValueError(f"{path}: expected an effective date and numbered sections")
     effective_date = datetime.strptime(date[1].strip(), "%B %d, %Y").date().isoformat()
 
@@ -28,6 +31,7 @@ def chunk_policy(path: Path) -> list[Chunk]:
         heading, _, body = section.partition("\n")
         section_id = heading.split()[0]
         if not body.strip():
+            logger.error(f"{path}: empty section {heading!r}")
             raise ValueError(f"{path}: empty section {heading!r}")
         # Keep contiguous Markdown blocks (including whole tables) together.
         paragraphs = re.split(r"\n[ \t]*\n", body.strip())

@@ -1,10 +1,11 @@
 from pathlib import Path
-
+import logging
 import chromadb
 from sentence_transformers import SentenceTransformer
 
 from relocation_rag.chunking import chunk_policy
 
+logger = logging.getLogger(__name__)
 #Q1: How is indexing done? Here and what are some other ways to index?
 def index_policy(path: Path) -> None:
     chunks = chunk_policy(path)
@@ -21,12 +22,12 @@ def index_policy(path: Path) -> None:
             for c in chunks
         ],
     )
-    print(f"Indexed {len(chunks)} chunks from {path.name}.")
+    logger.info(f"Indexed {len(chunks)} chunks from {path.name}.")
 
 def main() -> None:
     for path in Path("data/policies").glob("*.md"):
         index_policy(path)
-    print("Indexed all policies.")
+    logger.info("Indexed all policies.")
 
 
 if __name__ == "__main__":
