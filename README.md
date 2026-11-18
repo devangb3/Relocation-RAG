@@ -14,6 +14,14 @@ Requires Python 3.13 or newer and uv.
 uv sync --locked
 ```
 
+## Index the policies
+
+From the repository root, run `uv run --locked python -m relocation_rag.index`.
+The chunker groups paragraphs within each numbered section, targeting 128 words
+and keeping individual paragraphs and Markdown tables intact. Each chunk includes
+its section heading. Chroma stores the text, embedding, filename, section ID,
+and effective date in the local `.chroma` directory under `policy_chunks`.
+
 ## Tests
 
 ```sh
