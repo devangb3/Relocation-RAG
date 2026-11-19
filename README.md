@@ -2,7 +2,7 @@
 
 An internal Q&A assistant over a company relocation reimbursement policy.
 
-The policies are chunked, embedded locally, and stored in Chroma. The assistant retrieves relevant passages by vector similarity and uses Microsoft Foundry to answer with policy citations.
+The policies are chunked, embedded locally, and stored in Chroma. The assistant combines vector similarity with keyword search and uses Microsoft Foundry to answer with policy citations.
 
 Dependencies are managed with [uv](https://docs.astral.sh/uv/). Continuous integration installs the locked environment and runs the test suite.
 
@@ -29,6 +29,16 @@ starts with the section heading.
 Run the indexing command before querying. The text, embedding,
 filename, section ID, and effective date are stored in the
 `policy_chunks` collection under `.chroma`.
+
+## Hybrid retrieval
+
+Hybrid search computes BM25 scores over the current Chroma documents in memory
+for each query. It matches individual words case-insensitively and treats codes
+such as ADV-4 and REL-105.1 as whole tokens. Each search supplies up to ten
+candidates by default (adjust with `--limit`).
+Chunks found by both searches come first, in vector order. Keyword-only chunks
+follow in BM25 score order (ties use chunk ID), then the remaining vector hits in their original order.
+Each chunk appears once. The default limit is ten.
 
 ## Ask a policy question
 
