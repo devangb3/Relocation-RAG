@@ -11,7 +11,7 @@ from urllib.request import Request, urlopen
 
 from relocation_rag.retrieval import retrieve_policy
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("relocation_rag.generate_answer")
 
 def _configure_logging(level: int) -> None:
     logging.basicConfig(level=logging.WARNING, format="%(levelname)s %(message)s")

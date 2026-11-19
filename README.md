@@ -17,10 +17,18 @@ uv sync --locked
 ## Index the policies
 
 From the repository root, run `uv run --locked python -m relocation_rag.index`.
-The chunker groups paragraphs within each numbered section, targeting 128 words
-and keeping individual paragraphs and Markdown tables intact. Each chunk includes
-its section heading. Chroma stores the text, embedding, filename, section ID,
-and effective date in the local `.chroma` directory under `policy_chunks`.
+`sentence-transformers/all-MiniLM-L6-v2` from Hugging Face is used as the local embedding model for both passages and queries.
+
+The chunker targets 160 MiniLM tokens per chunk, including the section heading and
+special tokens. It carries over the previous prose sentence within the same
+section when the sentence is at most 32 tokens and fits in the next chunk.
+Every table row becomes one sentence pairing its column names with its values.
+Consecutive row sentences share a chunk when they fit the target. Each chunk
+starts with the section heading. 
+
+Run the indexing command before querying. The text, embedding,
+filename, section ID, and effective date are stored in the
+`policy_chunks` collection under `.chroma`.
 
 ## Ask a policy question
 

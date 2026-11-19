@@ -1,4 +1,8 @@
 import json
+import logging
+import runpy
+import sys
+import urllib.request
 from io import BytesIO
 from urllib.error import HTTPError
 
@@ -83,6 +87,62 @@ def test_generates_cited_answer_and_logs_usage(
     assert answer == f"The filing window is 30 calendar days.\n{citation}"
     assert "1000 input tokens, 200 output tokens" in caplog.text
     assert "$0.000270 USD" in caplog.text
+
+
+def test_cli_logs_answer_when_run_as_main(foundry_settings, monkeypatch, caplog):
+    monkeypatch.setenv("LOG_LEVEL", "INFO")
+    monkeypatch.setattr(
+        sys, "argv", ["relocation_rag.generate_answer", "Can I file after 45 days?"]
+    )
+
+    def retrieve_policy(question):
+        assert question == "Can I file after 45 days?"
+        return {
+            "documents": [["Submit the claim within 30 calendar days."]],
+            "metadatas": [
+                [
+                    {
+                        "section": "REL-103.3",
+                        "source": "rel-103-claims-2026.md",
+                        "effective_date": "2026-01-01",
+                    }
+                ]
+            ],
+        }
+
+    monkeypatch.setattr("relocation_rag.retrieval.retrieve_policy", retrieve_policy)
+
+    def urlopen(request, *, timeout):
+        assert timeout > 0
+        return BytesIO(
+            json.dumps(
+                {
+                    "status": "completed",
+                    "output": [
+                        {
+                            "type": "message",
+                            "content": [
+                                {
+                                    "type": "output_text",
+                                    "text": "The filing window is 30 calendar days.",
+                                }
+                            ],
+                        }
+                    ],
+                    "usage": {"input_tokens": 1000, "output_tokens": 200},
+                }
+            ).encode()
+        )
+
+    monkeypatch.setattr(urllib.request, "urlopen", urlopen)
+    package_logger = logging.getLogger("relocation_rag")
+    previous_level = package_logger.level
+    try:
+        runpy.run_path(generate_answer.__file__, run_name="__main__")
+    finally:
+        package_logger.setLevel(previous_level)
+
+    assert "The filing window is 30 calendar days." in caplog.text
 
 
 def test_empty_index_stops_before_foundry_request(foundry_settings, monkeypatch):

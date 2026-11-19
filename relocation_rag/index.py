@@ -1,28 +1,36 @@
-from pathlib import Path
 import logging
-import chromadb
-from sentence_transformers import SentenceTransformer
+from dataclasses import asdict
+from pathlib import Path
 
 from relocation_rag.chunking import chunk_policy
+from relocation_rag.embeddings import get_embedding_model, get_policy_collection
 
 logger = logging.getLogger(__name__)
-#Q1: How is indexing done? Here and what are some other ways to index?
+
+
+# Q1: How is indexing done? Here and what are some other ways to index?
 def index_policy(path: Path) -> None:
-    chunks = chunk_policy(path)
+    model = get_embedding_model()
+    chunks = chunk_policy(path, model.tokenizer, max_tokens=model.max_seq_length)
+    ids = [chunk.id for chunk in chunks]
     texts = [chunk.text for chunk in chunks]
-    model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
-    vectors = model.encode(texts) #Vectors of size 384
-    collection = chromadb.PersistentClient(path=".chroma").get_or_create_collection("policy_chunks")
+    vectors = model.encode(texts, normalize_embeddings=True)
+    collection = get_policy_collection()
+    previous_ids = collection.get(where={"source": path.name}, include=[])["ids"]
     collection.upsert(
-        ids=[chunk.id for chunk in chunks],
+        ids=ids,
         documents=texts,
         embeddings=vectors,
         metadatas=[
-            {"source": c.source, "section": c.section, "effective_date": c.effective_date}
+            {k: v for k, v in asdict(c).items() if k not in ("id", "text") and v is not None}
             for c in chunks
         ],
     )
-    logger.info(f"Indexed {len(chunks)} chunks from {path.name}.")
+    stale_ids = set(previous_ids).difference(ids)
+    if stale_ids:
+        collection.delete(ids=sorted(stale_ids))
+    logger.info("Indexed %s chunks from %s.", len(chunks), path.name)
+
 
 def main() -> None:
     for path in Path("data/policies").glob("*.md"):

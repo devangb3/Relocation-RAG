@@ -1,14 +1,15 @@
-import chromadb
-from sentence_transformers import SentenceTransformer
+from chromadb.api.types import QueryResult
 
-def retrieve_policy(query: str) -> list[str]:
-    model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
-    query_vector = model.encode(query) #Vectors of size 384
-    collection = chromadb.PersistentClient(path=".chroma").get_or_create_collection("policy_chunks")
-    results = collection.query(
-        query_embeddings=query_vector,
-        n_results=10, #Number of results to return
-        include=["distances", "documents", "metadatas"], #Include distances, documents, and metadatas
+from relocation_rag.embeddings import get_embedding_model, get_policy_collection
+
+
+def retrieve_policy(query: str) -> QueryResult:
+    model = get_embedding_model()
+    query_vector = model.encode(query, normalize_embeddings=True)
+    results = get_policy_collection().query(
+        query_embeddings=[query_vector],
+        n_results=10,
+        include=["distances", "documents", "metadatas"],
     )
     return results
 

@@ -1,13 +1,20 @@
-# Part 1 corpus generation
+# Domestic relocation corpus
 
-## Generation prompt
+North Alder Instruments is fictional. The five Markdown files under `data/policies/` contain four handbook volumes (including two editions of the claims volume) and a case register. Section numbers remain stable across claims editions. The register is a September 2026 snapshot of individual transfers. Its publication date identifies the snapshot; use the dates in each case to decide which policy edition applies.
 
-Write a fixed Markdown corpus for North Alder Instruments, a fictional employer. Address employees making company-requested transfers between US offices. Produce four English policy documents of 500–800 words each. Use dated editions and numbered, descriptive sections that an assistant can cite. Give employees practical examples and use the same names for roles, records, and dates throughout.
+## Finding the evidence
 
-Write three current policies effective January 1, 2026. REL-101 governs eligibility and written preapproval. REL-102 governs covered moving expenses, travel, lodging, limits, and exclusions. REL-103 governs receipts, submission, and review. Define the move completion date consistently. Put the filing window only in REL-103. Use 30 calendar days after completion in the current claims policy. Make the fourth document the January 1, 2025 edition of REL-103, with the same provisions except for a filing window of 60 calendar days. Include the same section headings in both editions. Avoid calling attention to the conflict in the policies. Keep these documents as fixed inputs to retrieval.
+- The transfer handbook contains eligibility and written authorizations (REL-101), mover orders (REL-104), advances (REL-105) and changes to assignments (REL-108).
+- The expense handbook contains baseline coverage (REL-102), lease releases (REL-106), destination housing (REL-107) and mixed or disputed charges (REL-109).
+- The two REL-103 claims handbooks share section numbers and text except for the edition date and filing window. Use the version in force on move completion.
+- The REL-200 register covers seven case groups. Two Harbor transfers have similar identifiers and different budgets. A draft estimate, a released amendment and a posted invoice can all describe the same shipment at different amounts.
 
-## Planted issue and expected evidence
+## Questions to try against the index
 
-Use only the four files under `data/policies/` as source documents. An older claims policy was retained alongside the current one. Both editions contain a section titled “REL-103.3 Filing window.” The 2025 edition allows 60 calendar days after move completion. The 2026 edition allows 30. All other claims provisions are identical.
-
-Diagnostic question for the later evaluation: “My approved move was completed 45 days ago. Under the current policy, am I still within the filing window?” The expected answer is no, citing REL-103.3 in the 2026 edition. A yes citing the 2025 edition would expose the stale source. This is an expected failure scenario; record the actual retrieved passages and answer when running the pipeline.
+1. **My approved move was completed 45 days ago. Under the current policy, am I still within the filing window?** No. REL-103.3 in the 2026 edition gives 30 calendar days. The 2025 edition gives 60.
+2. **For HA-217, how much of the packing receipt can I claim after the shuttle amendment?** $410. Amendment A1 released $4,650, and the carrier's posted direct bill was $4,240. The employee's $460 purchase exceeds the balance. See REL-201.2, REL-201.3, REL-104.2 and REL-102.1.
+3. **What is due to the employee on HA-271 after the advance?** $1,240. The eligible lease release is $1,300 after the deposit credit. Two capped hotel nights contribute $300 and the flight and bag contribute $400. Subtract the $760 advance once. See REL-202.1–3, REL-106.2, REL-102.3–4 and REL-105.3.
+4. **Was WI-084 filed on time even though the replacement folio arrived in March?** Yes. The corrected December 29, 2025 completion date selects the 2025 edition. February 20 is within the window ending February 27. The March attachment corrects the same timely filed line. See REL-203.1–2 and the 2025 REL-103.3–4.
+5. **For BE-119, how much of the furnished apartment week is eligible?** $840. Divide $980 by seven invoiced nights, then count six occupied nights at $140. The deposit and housekeeping are separate. See REL-204.1–2, REL-107.2 and REL-102.4.
+6. **How much did JU-510 overpay after the hotel gave back $45?** $11. The first night originally paid $150 under the shared nightly cap. Its revised eligible cost is $139. The other night is unaffected. See REL-206.1–2, REL-107.1 and REL-103.13.
+7. **Did Treasury receive the money back on ME-046?** The record supports a $220 return due ($300 less $80), but does not establish receipt. See REL-207.1–2 and REL-105.3.
