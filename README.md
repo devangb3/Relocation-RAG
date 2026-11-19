@@ -34,11 +34,19 @@ filename, section ID, and effective date are stored in the
 
 Hybrid search computes BM25 scores over the current Chroma documents in memory
 for each query. It matches individual words case-insensitively and treats codes
-such as ADV-4 and REL-105.1 as whole tokens. Each search supplies up to ten
-candidates by default (adjust with `--limit`).
+such as ADV-4 and REL-105.1 as whole tokens.
 Chunks found by both searches come first, in vector order. Keyword-only chunks
 follow in BM25 score order (ties use chunk ID), then the remaining vector hits in their original order.
-Each chunk appears once. The default limit is ten.
+Each chunk appears once.
+
+Answer generation retrieves up to 30 hybrid candidates and passes the ten highest
+scoring chunks to Foundry. A local cross-encoder
+(`cross-encoder/ms-marco-MiniLM-L6-v2`) scores the question against each passage,
+including the source filename and effective date. Ties retain the hybrid order.
+
+Inspect the same ranking with `uv run --locked python -m relocation_rag.retrieval "Which policy mentions ADV-4?"`.
+Use `--hybrid-only` or `--vector-only` for the earlier rankings. The CLI's
+`--limit` controls the number returned (default 10). In reranked mode the default k = 30.
 
 ## Ask a policy question
 

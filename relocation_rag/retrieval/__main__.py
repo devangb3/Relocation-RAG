@@ -3,17 +3,19 @@
 import argparse
 
 from relocation_rag.embeddings import get_policy_collection
-from relocation_rag.retrieval import HybridRetriever, VectorRetriever
+from relocation_rag.retrieval import HybridRetriever, RerankedRetriever, VectorRetriever
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("query", nargs="?", default="What is the policy on relocation?")
-    parser.add_argument("--vector-only", action="store_true")
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--vector-only", action="store_const", dest="retriever", const=VectorRetriever)
+    mode.add_argument("--hybrid-only", action="store_const", dest="retriever", const=HybridRetriever)
+    parser.set_defaults(retriever=RerankedRetriever)
     parser.add_argument("--limit", type=int, default=10)
     args = parser.parse_args()
-    retriever = VectorRetriever if args.vector_only else HybridRetriever
-    results = retriever(get_policy_collection()).search(args.query, args.limit)
+    results = args.retriever(get_policy_collection()).search(args.query, args.limit)
     for rank, chunk_id in enumerate(results["ids"][0], 1):
         print(f"{rank}. {chunk_id}")
 

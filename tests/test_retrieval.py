@@ -33,9 +33,26 @@ def test_hybrid_merge_preserves_citations(monkeypatch, question, expected):
         "metadatas": [{"section": key} for key in docs],
     }
     monkeypatch.setattr("relocation_rag.retrieval.vector_retriever.get_embedding_model", Mock())
-    result = retrieval.HybridRetriever(collection).search(question, limit=3)
+    result = retrieval.HybridRetriever(collection).search(question, k=3)
     assert result == {
         "ids": [expected],
         "documents": [[docs[key] for key in expected]],
         "metadatas": [[{"section": key} for key in expected]],
     }
+
+
+def test_reranker_selects_aligned_citations_and_preserves_ties(monkeypatch):
+    docs = ["first", "second", "third"]
+    metadata = [{"source": doc, "effective_date": "2026-01-01"} for doc in docs]
+    hybrid = Mock(return_value={"ids": [docs], "documents": [docs], "metadatas": [metadata]})
+    monkeypatch.setattr(retrieval.HybridRetriever, "search", hybrid)
+    model = Mock()
+    model.predict.return_value = [0, 2, 2]
+    monkeypatch.setattr("relocation_rag.retrieval.reranker.get_reranker", lambda: model)
+    result = retrieval.RerankedRetriever(Mock()).search("question", 2)
+    hybrid.assert_called_once_with("question", 30)
+    model.predict.assert_called_once_with(
+        [("question", f"{doc} | effective 2026-01-01\n{doc}") for doc in docs],
+        show_progress_bar=False,
+    )
+    assert result == {"ids": [docs[1:]], "documents": [docs[1:]], "metadatas": [metadata[1:]]}
