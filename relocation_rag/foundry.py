@@ -75,14 +75,32 @@ class FoundryClient:
     def respond(
         self, instructions: str, prompt: str, *, text_format: dict | None = None
     ) -> str:
+        options = {"text": {"format": text_format}} if text_format is not None else {}
+        output = self.response_items(instructions, prompt, **options)
+        return self.answer_text(output)
+
+    @staticmethod
+    def answer_text(output: list[dict]) -> str:
+        answer = "\n".join(
+            part["text"]
+            for item in output
+            if item["type"] == "message"
+            for part in item["content"]
+            if part["type"] == "output_text"
+        ).strip()
+        if not answer:
+            raise RuntimeError("Microsoft Foundry returned no answer text.")
+
+        return answer
+
+    def response_items(self, instructions: str, prompt: str | list[dict], **options) -> list[dict]:
         body = {
             "model": self.model,
             "instructions": instructions,
             "input": prompt,
             "store": False,
+            **options,
         }
-        if text_format is not None:
-            body["text"] = {"format": text_format}
         request = Request(
             self.url,
             data=json.dumps(body).encode("utf-8"),
@@ -107,16 +125,6 @@ class FoundryClient:
 
         if not isinstance(payload, dict) or payload.get("status") != "completed":
             raise RuntimeError("Microsoft Foundry did not complete the response.")
-        answer = "\n".join(
-            part["text"]
-            for item in payload.get("output", [])
-            if item["type"] == "message"
-            for part in item["content"]
-            if part["type"] == "output_text"
-        ).strip()
-        if not answer:
-            raise RuntimeError("Microsoft Foundry returned no answer text.")
-
         if payload.get("usage"):
             usage = payload["usage"]
             input_tokens = usage["input_tokens"]
@@ -131,4 +139,4 @@ class FoundryClient:
                     input_tokens * self.input_rate + output_tokens * self.output_rate
                 ) / 1_000_000
                 logger.info("Estimated Foundry cost: $%.6f USD", cost)
-        return answer
+        return payload.get("output", [])

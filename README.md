@@ -70,6 +70,10 @@ Answer generation retrieves up to 30 hybrid candidates and passes the ten highes
 scoring chunks to Foundry. A local cross-encoder
 (`cross-encoder/ms-marco-MiniLM-L6-v2`) scores the question against each passage,
 including the source filename and effective date. Ties retain the hybrid order.
+Foundry can answer immediately or call `search_corpus` with a question derived
+from the passages. Each call runs the same local retrieval pipeline and returns
+cited passages. After three follow-up searches, the model must answer with the
+available evidence and identify any unresolved gap.
 
 Inspect the same ranking with `uv run --locked python -m relocation_rag.retrieval "Which policy mentions ADV-4?"`.
 Use `--hybrid-only` or `--vector-only` for the earlier rankings. The CLI's
@@ -111,11 +115,11 @@ as described above, then run:
 uv run --locked --env-file .env pytest -q -s evaluation
 ```
 
-Each question makes one live generation request and one separate LLM-As-Judge request
-to the configured Foundry model The judge requires structured JSON output support and returns a yes/no verdict and reason
+Each question makes one to four live requests for answer generation and one separate
+judging request. The Foundry deployment must support function calling. The judge requires structured JSON output support and returns a yes/no verdict and reason
 for each rubric item. A case passes when every verdict is yes. To measure only
 local retrieval, run `uv run --locked pytest -q -s evaluation -k recall`.
-Each recall test prints the fraction of required evidence groups found in the top
+Each recall test prints the fraction of required evidence groups found in the initial top
 ten and fails only when that count is zero. Each answer test checks the generated text for
 the case's required facts. The live suite runs separately from the default unit
 tests. See the [recorded evaluation results](docs/retrieval-evaluation.md#automated-pytest-evaluation).

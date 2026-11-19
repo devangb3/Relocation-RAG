@@ -1,4 +1,5 @@
 import json
+from dataclasses import replace
 from unittest.mock import Mock
 
 import pytest
@@ -16,6 +17,7 @@ def judge(monkeypatch):
 
 def test_judge_maps_each_verdict_to_the_requested_criterion(judge):
     case = next(case for case in CASES if case.name == "corrected-folio")
+    case = replace(case, rubric=("Was the claim timely?", "Was it submitted on February 20?"))
     answer = "The employee submitted the claim on February 20."
     missing = {"verdict": "no", "reason": "The answer omits whether the claim was timely."}
     present = {"verdict": "yes", "reason": answer}

@@ -226,3 +226,41 @@ def test_missing_citations_stop_answer_generation(foundry_settings, monkeypatch)
     monkeypatch.setattr(urllib.request, "urlopen", lambda *a, **kw: pytest.fail("Foundry called"))
     with pytest.raises(ValueError, match="missing citation metadata"):
         generate_answer.generate_answer("Can I file after 45 days?")
+
+
+def test_search_loop_returns_evidence_and_stops_at_budget(foundry_settings, monkeypatch):
+    queries = []
+    requests = []
+
+    def context(query):
+        queries.append(query)
+        return f"Evidence for {query}"
+
+    def urlopen(request, *, timeout):
+        body = json.loads(request.data)
+        requests.append(body)
+        turn = len(requests)
+        if turn > 1:
+            assert body["input"][-1] == {
+                "type": "function_call_output",
+                "call_id": f"call-{turn - 1}",
+                "output": f"Evidence for policy {turn - 1}",
+            }
+            assert body["input"][-3]["encrypted_content"] == "reasoning state"
+        if turn <= generate_answer.MAX_FOLLOWUP_SEARCHES:
+            assert body["tool_choice"] == "auto"
+            output = [
+                {"type": "reasoning", "encrypted_content": "reasoning state"},
+                {"type": "function_call", "name": "search_corpus",
+                 "arguments": json.dumps({"query": f"policy {turn}"}),
+                 "call_id": f"call-{turn}"},
+            ]
+        else:
+            assert body["tool_choice"] == "none"
+            output = [{"type": "message", "content": [{"type": "output_text", "text": "Done"}]}]
+        return BytesIO(json.dumps({"status": "completed", "output": output}).encode())
+
+    monkeypatch.setattr(generate_answer, "_policy_context", context)
+    monkeypatch.setattr(urllib.request, "urlopen", urlopen)
+    assert generate_answer.generate_answer("case question") == "Done"
+    assert queries == ["case question", "policy 1", "policy 2", "policy 3"]
