@@ -32,6 +32,20 @@ jobs:
       - name: Lint
         run: uv run ruff check .
 
+      - name: Build policy index for evaluation
+        run: uv run --locked python -m relocation_rag.index
+
+      - name: Evaluate retrieval recall
+        run: uv run --locked pytest -q -s evaluation -k recall
+
+      - name: Evaluate answers with Foundry
+        if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+        env:
+          FOUNDRY_API_KEY: ${{ secrets.FOUNDRY_API_KEY }}
+          FOUNDRY_BASE_URL: ${{ vars.FOUNDRY_BASE_URL }}
+          FOUNDRY_MODEL: ${{ vars.FOUNDRY_MODEL }}
+        run: uv run --locked pytest -q evaluation -k answer_key_information
+
   container:
     name: Container indexing and retrieval
     runs-on: ubuntu-latest
