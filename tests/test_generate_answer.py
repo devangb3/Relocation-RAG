@@ -89,8 +89,11 @@ def test_generates_cited_answer_and_logs_usage(
     assert "$0.000270 USD" in caplog.text
 
 
-def test_cli_logs_answer_when_run_as_main(foundry_settings, monkeypatch, caplog):
-    monkeypatch.setenv("LOG_LEVEL", "INFO")
+@pytest.mark.parametrize("log_level,expect_usage", [("INFO", True), ("WARNING", False)])
+def test_cli_prints_answer_to_stdout(
+    foundry_settings, monkeypatch, caplog, capsys, log_level, expect_usage
+):
+    monkeypatch.setenv("LOG_LEVEL", log_level)
     monkeypatch.setattr(
         sys, "argv", ["relocation_rag.generate_answer", "Can I file after 45 days?"]
     )
@@ -135,14 +138,27 @@ def test_cli_logs_answer_when_run_as_main(foundry_settings, monkeypatch, caplog)
         )
 
     monkeypatch.setattr(urllib.request, "urlopen", urlopen)
+    root_logger = logging.getLogger()
     package_logger = logging.getLogger("relocation_rag")
-    previous_level = package_logger.level
+    previous = (root_logger.level, package_logger.level, list(root_logger.handlers))
     try:
         runpy.run_path(generate_answer.__file__, run_name="__main__")
     finally:
-        package_logger.setLevel(previous_level)
+        root_logger.setLevel(previous[0])
+        package_logger.setLevel(previous[1])
+        root_logger.handlers[:] = previous[2]
 
-    assert "The filing window is 30 calendar days." in caplog.text
+    captured = capsys.readouterr()
+    answer = "The filing window is 30 calendar days."
+    assert captured.out == f"{answer}\n"
+    assert answer not in captured.err
+    assert answer not in caplog.text
+    if expect_usage:
+        assert "1000 input tokens, 200 output tokens" in caplog.text
+        assert "1000 input tokens, 200 output tokens" in captured.err
+    else:
+        assert "input tokens" not in caplog.text
+        assert "input tokens" not in captured.err
 
 
 def test_empty_index_stops_before_foundry_request(foundry_settings, monkeypatch):

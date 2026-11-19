@@ -4,8 +4,9 @@ from pathlib import Path
 
 from relocation_rag.chunking import chunk_policy
 from relocation_rag.embeddings import get_embedding_model, get_policy_collection
+from relocation_rag.logging_service import LoggingService
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("relocation_rag.index")
 
 
 # Q1: How is indexing done? Here and what are some other ways to index?
@@ -33,6 +34,7 @@ def index_policy(path: Path) -> None:
 
 
 def main() -> None:
+    LoggingService()
     for path in Path("data/policies").glob("*.md"):
         index_policy(path)
     logger.info("Indexed all policies.")

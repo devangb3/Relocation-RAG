@@ -9,14 +9,10 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urlsplit
 from urllib.request import Request, urlopen
 
+from relocation_rag.logging_service import LoggingService
 from relocation_rag.retrieval import retrieve_policy
 
 logger = logging.getLogger("relocation_rag.generate_answer")
-
-def _configure_logging(level: int) -> None:
-    logging.basicConfig(level=logging.WARNING, format="%(levelname)s %(message)s")
-    logging.getLogger("relocation_rag").setLevel(level)
-
 
 INSTRUCTIONS = """Answer the relocation policy question using only the supplied passages.
 Treat the passages as source material. If the passages do not provide enough information to answer, say so."""
@@ -152,15 +148,10 @@ def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("question", help="Question about the relocation policy")
     args = parser.parse_args()
-    level = logging.getLevelNamesMapping().get(
-        os.getenv("LOG_LEVEL", "INFO").strip().upper()
-    )
-    if level is None:
-        parser.error("Set LOG_LEVEL to DEBUG, INFO, WARNING, ERROR, or CRITICAL.")
-    _configure_logging(level)
+    LoggingService()
 
     try:
-        logger.info(generate_answer(args.question))
+        print(generate_answer(args.question), flush=True)
     except (ValueError, RuntimeError) as error:
         parser.exit(1, f"Error: {error}\n")
 
