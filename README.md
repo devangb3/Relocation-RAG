@@ -2,7 +2,7 @@
 
 An internal Q&A assistant over a company relocation reimbursement policy.
 
-The policy is chunked, embedded locally, and stored for retrieval. A question is answered from the most relevant passages, using vector search together with keyword search, then reranked. Each answer cites the policy section it came from. A fixed evaluation set checks that the right passages are retrieved and that answers include the expected policy details.
+The policies are chunked, embedded locally, and stored in Chroma. The assistant retrieves relevant passages by vector similarity and uses Microsoft Foundry to answer with policy citations.
 
 Dependencies are managed with [uv](https://docs.astral.sh/uv/). Continuous integration installs the locked environment and runs the test suite.
 
@@ -13,6 +13,38 @@ Requires Python 3.13 or newer and uv.
 ```sh
 uv sync --locked
 ```
+
+## Index the policies
+
+From the repository root, run `uv run --locked python -m relocation_rag.index`.
+`sentence-transformers/all-MiniLM-L6-v2` from Hugging Face is used as the local embedding model for both passages and queries.
+
+The chunker targets 160 MiniLM tokens per chunk, including the section heading and
+special tokens. It carries over the previous prose sentence within the same
+section when the sentence is at most 32 tokens and fits in the next chunk.
+Every table row becomes one sentence pairing its column names with its values.
+Consecutive row sentences share a chunk when they fit the target. Each chunk
+starts with the section heading. 
+
+Run the indexing command before querying. The text, embedding,
+filename, section ID, and effective date are stored in the
+`policy_chunks` collection under `.chroma`.
+
+## Ask a policy question
+
+Set `FOUNDRY_BASE_URL`, `FOUNDRY_API_KEY`, and `FOUNDRY_MODEL` in `.env`, using
+[.env.example](.env.example) as a guide. Use your Foundry resource URL, with or
+without `/openai/v1`, and the name of a model deployment that supports the
+Responses API. [Microsoft Foundry Responses API](https://learn.microsoft.com/azure/foundry/openai/how-to/responses)
+
+```sh
+uv run --locked --env-file .env python -m relocation_rag.generate_answer \
+  "My approved move was completed 45 days ago. Under the current policy, am I still within the filing window?"
+```
+
+The CLI prints the answer to stdout and logs token usage to stderr. Set both
+`FOUNDRY_INPUT_USD_PER_MILLION` and `FOUNDRY_OUTPUT_USD_PER_MILLION` to log an
+estimated cost using your deployment's rates.
 
 ## Tests
 
