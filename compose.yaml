@@ -1,0 +1,12 @@
+services:
+  rag:
+    build: .
+    volumes:
+      - chroma:/app/.chroma
+      - models:/home/rag/.cache/huggingface
+    environment:
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+
+volumes:
+  chroma:
+  models:

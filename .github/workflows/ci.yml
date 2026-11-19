@@ -31,3 +31,16 @@ jobs:
 
       - name: Lint
         run: uv run ruff check .
+
+  container:
+    name: Container indexing and retrieval
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker compose build
+      - run: docker compose run --rm -T rag relocation_rag.index
+      - name: Query the persisted index from a fresh container
+        run: |
+          results=$(docker compose run --rm -T rag relocation_rag.retrieval "Which form do I use to request a relocation advance?")
+          echo "$results"
+          grep -F 'rel-101-transfer-approval/REL-105.1/' <<< "$results"
