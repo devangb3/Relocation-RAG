@@ -80,7 +80,7 @@ def test_generates_cited_answer_and_logs_usage(
             ).encode()
         )
 
-    monkeypatch.setattr(generate_answer, "urlopen", urlopen)
+    monkeypatch.setattr(urllib.request, "urlopen", urlopen)
     with caplog.at_level("INFO"):
         answer = generate_answer.generate_answer("Can I file after 45 days?")
 
@@ -169,7 +169,7 @@ def test_empty_index_stops_before_foundry_request(foundry_settings, monkeypatch)
     def urlopen(*args, **kwargs):
         pytest.fail("Foundry was called without policy passages")
 
-    monkeypatch.setattr(generate_answer, "urlopen", urlopen)
+    monkeypatch.setattr(urllib.request, "urlopen", urlopen)
     with pytest.raises(ValueError, match="No policy passages found"):
         generate_answer.generate_answer("Can I file after 45 days?")
 
@@ -180,7 +180,7 @@ def test_foundry_http_error_omits_response_body(foundry_settings, monkeypatch):
             request.full_url, 401, "Unauthorized", None, BytesIO(b"private details")
         )
 
-    monkeypatch.setattr(generate_answer, "urlopen", urlopen)
+    monkeypatch.setattr(urllib.request, "urlopen", urlopen)
     with pytest.raises(RuntimeError, match=r"^Microsoft Foundry returned HTTP 401\.$"):
         generate_answer.generate_answer("Can I file after 45 days?")
 
@@ -206,7 +206,7 @@ def test_bad_settings_fail_before_retrieval(foundry_settings, monkeypatch, setti
     (b'{"status":"completed","output":[]}', "no answer text"),
 ])
 def test_unusable_foundry_response(foundry_settings, monkeypatch, response, error):
-    monkeypatch.setattr(generate_answer, "urlopen", lambda *a, **kw: BytesIO(response))
+    monkeypatch.setattr(urllib.request, "urlopen", lambda *a, **kw: BytesIO(response))
     with pytest.raises(RuntimeError, match=error):
         generate_answer.generate_answer("Can I file after 45 days?")
 
@@ -215,7 +215,7 @@ def test_foundry_timeout(foundry_settings, monkeypatch):
     def timeout(request, *, timeout):
         raise TimeoutError()
 
-    monkeypatch.setattr(generate_answer, "urlopen", timeout)
+    monkeypatch.setattr(urllib.request, "urlopen", timeout)
     with pytest.raises(RuntimeError, match="request timed out"):
         generate_answer.generate_answer("Can I file after 45 days?")
 
@@ -223,6 +223,6 @@ def test_foundry_timeout(foundry_settings, monkeypatch):
 def test_missing_citations_stop_answer_generation(foundry_settings, monkeypatch):
     passages = {"documents": [["Keep receipts."]], "metadatas": None}
     monkeypatch.setattr(generate_answer, "retrieve_policy", lambda _: passages)
-    monkeypatch.setattr(generate_answer, "urlopen", lambda *a, **kw: pytest.fail("Foundry called"))
+    monkeypatch.setattr(urllib.request, "urlopen", lambda *a, **kw: pytest.fail("Foundry called"))
     with pytest.raises(ValueError, match="missing citation metadata"):
         generate_answer.generate_answer("Can I file after 45 days?")

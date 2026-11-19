@@ -84,9 +84,11 @@ as described above, then run:
 uv run --locked --env-file .env pytest -q -s evaluation
 ```
 
-The evaluation makes one live generation request per question. To measure only
+Each question makes one live generation request and one separate LLM-As-Judge request
+to the configured Foundry model The judge requires structured JSON output support and returns a yes/no verdict and reason
+for each rubric item. A case passes when every verdict is yes. To measure only
 local retrieval, run `uv run --locked pytest -q -s evaluation -k recall`.
-Each recall test prints the fraction of required evidence chunks found in the top
-ten and fails if any are missing. Each answer test checks the generated text for
+Each recall test prints the fraction of required evidence groups found in the top
+ten and fails only when that count is zero. Each answer test checks the generated text for
 the case's required facts. The live suite runs separately from the default unit
 tests. See the [recorded evaluation results](docs/retrieval-evaluation.md#automated-pytest-evaluation).
