@@ -56,3 +56,32 @@ def test_reranker_selects_aligned_citations_and_preserves_ties(monkeypatch):
         show_progress_bar=False,
     )
     assert result == {"ids": [docs[1:]], "documents": [docs[1:]], "metadatas": [metadata[1:]]}
+
+
+@pytest.mark.parametrize(("query", "limit"), [("  ", 1), ("policy", 0)])
+def test_vector_search_rejects_invalid_input_before_embedding(monkeypatch, query, limit):
+    model = Mock()
+    monkeypatch.setattr("relocation_rag.retrieval.vector_retriever.get_embedding_model", model)
+    with pytest.raises(ValueError, match="nonblank query and a positive limit"):
+        retrieval.VectorRetriever(Mock()).search(query, limit)
+    model.assert_not_called()
+
+
+@pytest.mark.parametrize("missing_field", ["documents", "metadatas"])
+def test_vector_search_requires_documents_and_citations(monkeypatch, missing_field):
+    collection = Mock()
+    response = {"ids": [["id"]], "documents": [["text"]], "metadatas": [[{"source": "policy"}]]}
+    response[missing_field] = None
+    collection.query.return_value = response
+    monkeypatch.setattr("relocation_rag.retrieval.vector_retriever.get_embedding_model", Mock())
+    with pytest.raises(RuntimeError, match="no documents or metadata"):
+        retrieval.VectorRetriever(collection).search("question")
+
+
+def test_empty_retrieval_skips_reranking(monkeypatch):
+    empty = {"ids": [[]], "documents": [[]], "metadatas": [[]]}
+    monkeypatch.setattr(retrieval.HybridRetriever, "search", Mock(return_value=empty))
+    get_model = Mock()
+    monkeypatch.setattr("relocation_rag.retrieval.reranker.get_reranker", get_model)
+    assert retrieval.RerankedRetriever(Mock()).search("question") == empty
+    get_model.assert_not_called()

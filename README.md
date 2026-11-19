@@ -70,3 +70,23 @@ estimated cost using your deployment's rates.
 uv run pytest
 uv run ruff check .
 ```
+
+Run pytest coverage
+
+```sh
+uv run --with pytest-cov pytest --cov=relocation_rag --cov-report=term-missing
+```
+
+To run the nine-question policy evaluation, build the index and configure Foundry
+as described above, then run:
+
+```sh
+uv run --locked --env-file .env pytest -q -s evaluation
+```
+
+The evaluation makes one live generation request per question. To measure only
+local retrieval, run `uv run --locked pytest -q -s evaluation -k recall`.
+Each recall test prints the fraction of required evidence chunks found in the top
+ten and fails if any are missing. Each answer test checks the generated text for
+the case's required facts. The live suite runs separately from the default unit
+tests. See the [recorded evaluation results](docs/retrieval-evaluation.md#automated-pytest-evaluation).

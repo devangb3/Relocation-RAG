@@ -1,16 +1,8 @@
 from pathlib import Path
 
 import pytest
-from transformers import BertTokenizer
 
 from relocation_rag.chunking import chunk_policy
-
-
-@pytest.fixture
-def tokenizer():
-    tokens = ["[PAD]", "[UNK]", "[CLS]", "[SEP]", "[MASK]", "word", "##piece", "##s", "."]
-    vocab = {token: index for index, token in enumerate(tokens)}
-    return BertTokenizer(vocab=vocab, model_max_length=512)
 
 
 def write_policy(path: Path, sections: str) -> Path:
@@ -92,3 +84,29 @@ def test_uncaptioned_table_splits_with_headers_and_source_rows(tmp_path, tokeniz
     assert next_row == len(rows) + 1
     assert prose.table_number is None
     assert prose.text == "Register\n\nEnd of register."
+
+
+def test_header_only_table_and_escaped_cells_keep_distinct_citations(tmp_path, tokenizer):
+    path = write_policy(tmp_path / "claims.md", (
+        "## Filing\n\n| Cost | Amount |\n| --- | --- |\n\n"
+        "| Cost | Amount |\n| --- | --- |\n| Travel \\| lodging | |"
+    ))
+    header, row = chunk_policy(path, tokenizer)
+    assert header.text == "Filing\n\nColumns include Cost, Amount."
+    assert (header.table_number, header.row_start, header.row_end) == (1, None, None)
+    assert row.text == "Filing\n\nCost is Travel | lodging and Amount is blank."
+    assert (row.table_number, row.row_start, row.row_end) == (2, 1, 1)
+
+
+@pytest.mark.parametrize(("markdown", "error"), [
+    ("## Filing\nKeep receipts.", "expected an effective date"),
+    ("Company | Effective January 1, 2026\n## Filing\n", "empty section"),
+    ("Company | Effective January 1, 2026\n## Filing\n| A | B |\n|--|--|\n| one |",
+     "Filing: table row 1 has 1 cells for 2 columns"),
+])
+def test_invalid_policy_identifies_source(tmp_path, tokenizer, markdown, error):
+    path = tmp_path / "claims.md"
+    path.write_text(markdown)
+    with pytest.raises(ValueError, match=error) as exc:
+        chunk_policy(path, tokenizer)
+    assert path.name in str(exc.value)
