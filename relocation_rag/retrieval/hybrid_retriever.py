@@ -3,14 +3,14 @@ from relocation_rag.retrieval.vector_retriever import RetrievedChunks, VectorRet
 
 
 class HybridRetriever(VectorRetriever):
-    def search(self, query: str, limit: int = 10) -> RetrievedChunks:
-        results = super().search(query, limit)
+    def search(self, query: str, k: int = 10) -> RetrievedChunks:
+        results = super().search(query, k)
 
         chunks = self.collection.get(include=["documents", "metadatas"])
         documents = dict(zip(chunks["ids"], chunks["documents"], strict=True))
         metadata = dict(zip(chunks["ids"], chunks["metadatas"], strict=True))
 
-        keyword_ids = rank_chunks_keyword(query, documents, limit)
+        keyword_ids = rank_chunks_keyword(query, documents, k)
         keyword_hits = {key: (documents[key], metadata[key]) for key in keyword_ids}
 
         if not keyword_hits:
@@ -27,7 +27,7 @@ class HybridRetriever(VectorRetriever):
         shared = [key for key in vector_ids if key in keyword_hits]
         keyword_only = [key for key in keyword_ids if key not in vector_hits]
         vector_only = [key for key in vector_ids if key not in keyword_hits]
-        selected = (shared + keyword_only + vector_only)[:limit]
+        selected = (shared + keyword_only + vector_only)[:k]
         hits = vector_hits | keyword_hits
         return {
             "ids": [selected],
