@@ -77,7 +77,10 @@ including the source filename and effective date. Ties retain the hybrid order.
 Foundry can answer immediately or call `search_corpus` with a question derived
 from the passages. Each call runs the same local retrieval pipeline and returns
 cited passages. After three follow-up searches, the model must answer with the
-available evidence and identify any unresolved gap.
+available evidence and identify any unresolved gap. Each question has its own
+source map, keyed by the IDs of chunks supplied across all searches. Foundry
+returns each claim with its supporting IDs. The application validates those IDs
+and displays the indexed section, filename, and effective date beside the claim.
 
 Inspect the same ranking with `uv run --locked python -m relocation_rag.retrieval "Which policy mentions ADV-4?"`.
 Use `--hybrid-only` or `--vector-only` for the earlier rankings. The CLI's
@@ -120,7 +123,7 @@ uv run --locked --env-file .env pytest -q -s evaluation
 ```
 
 Each question makes one to four live requests for answer generation and one separate
-judging request. The Foundry deployment must support function calling. The judge requires structured JSON output support and returns a yes/no verdict and reason
+judging request. The Foundry deployment must support function calling and structured JSON output. The judge returns a yes/no verdict and reason
 for each rubric item. A case passes when every verdict is yes. To measure only
 local retrieval, run `uv run --locked pytest -q -s evaluation -k recall`.
 Each recall test prints the fraction of required evidence groups found in the initial top
