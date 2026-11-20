@@ -211,7 +211,7 @@ def chunk_policy(
     policy_id = title.partition(" · ")[0]
     # Chroma range filters require numbers. Use YYYYMMDD and an open-ended upper bound.
     effective_from = int(effective_date.replace("-", ""))
-    end_marker = re.search(r"^Valid until \(exclusive\): (.+)$", header, re.MULTILINE)
+    end_marker = re.search(r"^Valid until(?: \(exclusive\))?: (.+)$", header, re.MULTILINE)
     effective_to = 100000000
     if end_marker:
         end_date = datetime.strptime(end_marker[1].strip(), "%Y-%m-%d").date()

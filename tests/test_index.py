@@ -1,17 +1,28 @@
+from datetime import date
+from pathlib import Path
 from unittest.mock import Mock
 
-from relocation_rag import embeddings, index
+import chromadb
+import pytest
+
+from relocation_rag import index
+from relocation_rag.retrieval.vector_retriever import VectorRetriever
 
 
-def test_reindex_updates_citations_and_removes_only_superseded_chunks(
-    tmp_path, monkeypatch, tokenizer
-):
-    monkeypatch.chdir(tmp_path)  # Isolate the persistent Chroma database.
-    monkeypatch.setattr(embeddings, "LoggingService", Mock())
+@pytest.fixture
+def collection(tmp_path, monkeypatch, tokenizer):
+    collection = chromadb.PersistentClient(path=str(tmp_path)).create_collection(
+        "policy_chunks", embedding_function=None
+    )
+    monkeypatch.setattr(index, "get_policy_collection", lambda: collection)
     model = Mock(tokenizer=tokenizer, max_seq_length=512)
     model.encode.side_effect = lambda texts, **kwargs: [[1.0, 0.0] for _ in texts]
     monkeypatch.setattr(index, "get_embedding_model", lambda: model)
 
+    return collection
+
+
+def test_reindex_updates_citations_and_removes_only_superseded_chunks(tmp_path, collection):
     policy = tmp_path / "claims.md"
     other = tmp_path / "travel.md"
     header = "# Claims\nCompany | Effective January 1, 2025\n"
@@ -21,7 +32,6 @@ def test_reindex_updates_citations_and_removes_only_superseded_chunks(
     other.write_text(header + "## A Travel\nKeep receipts.")
     index.index_policy(policy)
     index.index_policy(other)
-    collection = embeddings.get_policy_collection()
     assert set(collection.get()["ids"]) == {"claims/A/1", "claims/B/1", "travel/A/1"}
 
     policy.write_text(
@@ -63,3 +73,16 @@ def test_reindex_updates_citations_and_removes_only_superseded_chunks(
             },
         ),
     }
+
+
+def test_bundled_claims_policy_switches_on_january_1(collection):
+    policies = Path(__file__).resolve().parents[1] / "data" / "policies"
+    previous = policies / "rel-103-claims-2025.md"
+    current = policies / "rel-103-claims-2026.md"
+    index.index_policy(previous)
+    index.index_policy(current)
+
+    for day, edition in ((date(2025, 12, 31), previous), (date(2026, 1, 1), current)):
+        where = VectorRetriever(collection, day).where
+        rows = collection.get(where=where, include=["metadatas"])
+        assert {metadata["source"] for metadata in rows["metadatas"]} == {edition.name}
