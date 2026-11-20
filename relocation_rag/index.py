@@ -8,8 +8,6 @@ from relocation_rag.logging_service import LoggingService
 
 logger = logging.getLogger("relocation_rag.index")
 
-
-# Q1: How is indexing done? Here and what are some other ways to index?
 def index_policy(path: Path) -> None:
     model = get_embedding_model()
     chunks = chunk_policy(path, model.tokenizer, max_tokens=model.max_seq_length)
