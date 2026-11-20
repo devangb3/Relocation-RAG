@@ -12,8 +12,8 @@ def test_handbook(question, section, pattern):
     ids = results["ids"][0][:3]
     hit = any(f"/REL-{section}/" in key for key in ids)
     answer = generate_answer(question)
-    # Evaluate generated prose independently of the appended source listing.
-    prose = answer.split("Sources:")[0]
+    # Evaluate generated prose independently of inline citation metadata.
+    prose = re.sub(r"\[REL-[^\]]+\]", "", answer)
     correct = bool(re.search(pattern, prose, re.I))
     print(f"\n{section} | recall@3={int(hit)} | key-info={int(correct)} | {question}")
     print(answer)

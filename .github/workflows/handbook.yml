@@ -29,3 +29,9 @@ jobs:
           FOUNDRY_BASE_URL: ${{ vars.FOUNDRY_BASE_URL }}
           FOUNDRY_MODEL: ${{ vars.FOUNDRY_MODEL }}
         run: uv run pytest -q -s submission/test_handbook.py
+      - name: Reproduce and repair a stale publication
+        env:
+          FOUNDRY_API_KEY: ${{ secrets.FOUNDRY_API_KEY }}
+          FOUNDRY_BASE_URL: ${{ vars.FOUNDRY_BASE_URL }}
+          FOUNDRY_MODEL: ${{ vars.FOUNDRY_MODEL }}
+        run: uv run python -m submission.diagnose
