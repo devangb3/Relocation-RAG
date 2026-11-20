@@ -19,7 +19,8 @@ def foundry_settings(monkeypatch):
     monkeypatch.setenv("FOUNDRY_INPUT_USD_PER_MILLION", "0.15")
     monkeypatch.setenv("FOUNDRY_OUTPUT_USD_PER_MILLION", "0.60")
 
-    def retrieve_policy(question):
+    def retrieve_policy(question, as_of):
+        assert as_of == generate_answer.date.today()
         assert question == "Can I file after 45 days?"
         return {
             "documents": [["Submit the claim within 30 calendar days."]],
@@ -35,6 +36,7 @@ def foundry_settings(monkeypatch):
         }
 
     monkeypatch.setattr(generate_answer, "retrieve_policy", retrieve_policy)
+    monkeypatch.setattr("relocation_rag.retrieval.retrieve_policy", retrieve_policy)
 
 
 @pytest.mark.parametrize("base_path", ["", "/openai/v1/"])
@@ -98,23 +100,6 @@ def test_cli_prints_answer_to_stdout(
         sys, "argv", ["relocation_rag.generate_answer", "Can I file after 45 days?"]
     )
 
-    def retrieve_policy(question):
-        assert question == "Can I file after 45 days?"
-        return {
-            "documents": [["Submit the claim within 30 calendar days."]],
-            "metadatas": [
-                [
-                    {
-                        "section": "REL-103.3",
-                        "source": "rel-103-claims-2026.md",
-                        "effective_date": "2026-01-01",
-                    }
-                ]
-            ],
-        }
-
-    monkeypatch.setattr("relocation_rag.retrieval.retrieve_policy", retrieve_policy)
-
     def urlopen(request, *, timeout):
         assert timeout > 0
         return BytesIO(
@@ -163,7 +148,7 @@ def test_cli_prints_answer_to_stdout(
 
 def test_empty_index_stops_before_foundry_request(foundry_settings, monkeypatch):
     monkeypatch.setattr(
-        generate_answer, "retrieve_policy", lambda _: {"documents": [[]]}
+        generate_answer, "retrieve_policy", lambda *args: {"documents": [[]]}
     )
 
     def urlopen(*args, **kwargs):
@@ -195,7 +180,7 @@ def test_foundry_http_error_omits_response_body(foundry_settings, monkeypatch):
 ])
 def test_bad_settings_fail_before_retrieval(foundry_settings, monkeypatch, setting, value, error):
     monkeypatch.setenv(setting, value)
-    monkeypatch.setattr(generate_answer, "retrieve_policy", lambda _: pytest.fail("retrieval ran"))
+    monkeypatch.setattr(generate_answer, "retrieve_policy", lambda *args: pytest.fail("retrieval ran"))
     with pytest.raises(ValueError, match=error):
         generate_answer.generate_answer("Can I file after 45 days?")
 
@@ -222,7 +207,7 @@ def test_foundry_timeout(foundry_settings, monkeypatch):
 
 def test_missing_citations_stop_answer_generation(foundry_settings, monkeypatch):
     passages = {"documents": [["Keep receipts."]], "metadatas": None}
-    monkeypatch.setattr(generate_answer, "retrieve_policy", lambda _: passages)
+    monkeypatch.setattr(generate_answer, "retrieve_policy", lambda *args: passages)
     monkeypatch.setattr(urllib.request, "urlopen", lambda *a, **kw: pytest.fail("Foundry called"))
     with pytest.raises(ValueError, match="missing citation metadata"):
         generate_answer.generate_answer("Can I file after 45 days?")
@@ -232,8 +217,8 @@ def test_search_loop_returns_evidence_and_stops_at_budget(foundry_settings, monk
     queries = []
     requests = []
 
-    def context(query):
-        queries.append(query)
+    def context(query, as_of):
+        queries.append((query, as_of.isoformat()))
         return f"Evidence for {query}"
 
     def urlopen(request, *, timeout):
@@ -252,7 +237,8 @@ def test_search_loop_returns_evidence_and_stops_at_budget(foundry_settings, monk
             output = [
                 {"type": "reasoning", "encrypted_content": "reasoning state"},
                 {"type": "function_call", "name": "search_corpus",
-                 "arguments": json.dumps({"query": f"policy {turn}"}),
+                 "arguments": json.dumps({"query": f"policy {turn}",
+                                          "as_of": "2025-12-29" if turn == 1 else None}),
                  "call_id": f"call-{turn}"},
             ]
         else:
@@ -263,4 +249,6 @@ def test_search_loop_returns_evidence_and_stops_at_budget(foundry_settings, monk
     monkeypatch.setattr(generate_answer, "_policy_context", context)
     monkeypatch.setattr(urllib.request, "urlopen", urlopen)
     assert generate_answer.generate_answer("case question") == "Done"
-    assert queries == ["case question", "policy 1", "policy 2", "policy 3"]
+    assert queries == [("case question", generate_answer.date.today().isoformat()),
+                       ("policy 1", "2025-12-29"), ("policy 2", "2025-12-29"),
+                       ("policy 3", "2025-12-29")]

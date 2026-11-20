@@ -78,3 +78,29 @@ On 2026-11-19, the same nine questions went through the same generation function
 | Q9. Single-source note | Purchasing, with the correct condition | Same signer and condition |
 
 Hybrid-only gave six direct correct conclusions, one conditional answer and two abstentions. Reranking gave seven direct correct conclusions and two abstentions. Three hybrid-only answers named a supporting REL section (Q1, Q8, Q9), compared with four reranked answers (Q4, Q7, Q8, Q9). With one generation per configuration.
+
+## Diagnosing the conflicting filing deadlines
+
+**Question asked on November 19, 2026**  
+“My approved move was completed 45 days ago. Under the current policy, am I still within the filing window?”
+
+**Earlier answer from the full pipeline**
+
+> **If your recorded move completion date was in 2026, no**: the filing window is 30 calendar days, so at 45 days it has passed. If your recorded completion date was in 2025, you are still within that edition’s 60-day window. The edition in force on the completion date governs, even if you file in the following year. [REL-103.3, 2026 and 2025 editions]
+>
+> Your exact recorded completion date is needed to determine which rule applies. People Operations records that date as when you arrived at the destination to take up residence. [REL-101.4]
+
+**Expected answer.** No. Under the current edition, day 45 is 15 days past the deadline. 
+
+**1. Did retrieval find the governing passage?** Yes, both passages reached the initial generation context with their filenames and effective dates.
+
+**2. Where did the competing answer come from?** The same section says “within 30 calendar days” in the edition effective January 1, 2026 and “within 60 calendar days” in the edition effective January 1, 2025. Both select the edition by the recorded move completion date. Day 45 falls between those limits, so an outdated copy can reverse the answer to a current-policy question. [2026 source, REL-103.3](../data/policies/rel-103-claims-2026.md#rel-1033-filing-window) · [2025 source, REL-103.3](../data/policies/rel-103-claims-2025.md#rel-1033-filing-window)
+
+**Diagnostic check.** We removed the 2025 claims chunks from a temporary copy of the index and repeated the question. The 2026 rule still ranked first, and “60 calendar days” disappeared from the top ten. This traced the competing deadline to the older handbook.
+
+**Remediation.** We kept both editions in the index and recorded the dates when each governs a claim. Before ranking passages, vector search and BM25 now filter policy chunks to the editions in force on the lookup date. The initial lookup uses today’s date, so a current-policy question gets the 30-day rule. The initial search can retrieve the transfer record for a historical claim. For WI-084, the model can read the corrected completion date from the register and pass `as_of="2025-12-29"` to `search_corpus` to retrieve the 60-day rule. Follow-up searches inherit that date.
+
+**Verification.** On the rebuilt index, vector, hybrid, and reranked searches each returned only the 2025 claims edition for December 31, 2025, and only the 2026 claims edition for January 1, 2026. We then verified both answers.
+
+- **Current policy, day 45.** The assistant answered “No” and cited REL-103.3 for the 30-calendar-day limit. It gave the employee a direct answer without introducing the historical deadline.
+- **WI-084.** The initial search returned the register entries REL-203.2 and REL-203.1. The model then searched with `as_of="2025-12-29"`, and the 2025 edition of REL-103.3 ranked first. It concluded that the February 20 filing met the February 27 deadline and explained that the March 4 replacement folio retained the original filing date.

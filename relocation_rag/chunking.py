@@ -26,6 +26,9 @@ class Chunk:
     source: str
     section: str
     effective_date: str
+    policy_id: str
+    effective_from: int
+    effective_to: int
     table_number: int | None = None
     row_start: int | None = None
     row_end: int | None = None
@@ -204,6 +207,18 @@ def chunk_policy(
         raise ValueError(f"{path}: expected an effective date and numbered sections")
     effective_date = datetime.strptime(date[1].strip(), "%B %d, %Y").date().isoformat()
 
+    title = header.splitlines()[0].removeprefix("# ").strip()
+    policy_id = title.partition(" · ")[0]
+    # Chroma range filters require numbers. Use YYYYMMDD and an open-ended upper bound.
+    effective_from = int(effective_date.replace("-", ""))
+    end_marker = re.search(r"^Valid until(?: \(exclusive\))?: (.+)$", header, re.MULTILINE)
+    effective_to = 100000000
+    if end_marker:
+        end_date = datetime.strptime(end_marker[1].strip(), "%Y-%m-%d").date()
+        effective_to = int(end_date.strftime("%Y%m%d"))
+        if effective_to <= effective_from:
+            raise ValueError(f"{path}: validity must end after the effective date")
+
     model_limit = tokenizer.model_max_length
     if max_tokens is not None:
         model_limit = min(model_limit, max_tokens)
@@ -227,7 +242,8 @@ def chunk_policy(
                 chunks.append(Chunk(
                     id=f"{path.stem}/{section_id}/{index}", text=text, source=path.name,
                     section=section_id, effective_date=effective_date, table_number=table,
-                    row_start=start, row_end=end,
+                    row_start=start, row_end=end, policy_id=policy_id,
+                    effective_from=effective_from, effective_to=effective_to,
                 ))
         except ValueError as error:
             raise ValueError(f"{path}: {section_id}: {error}") from error
