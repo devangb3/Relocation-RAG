@@ -1,0 +1,31 @@
+name: Handbook submission
+on:
+  push:
+    branches: [submission/evidence-pdf]
+    paths-ignore: ['submission/*.pdf']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  evidence:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2
+        with:
+          version: "0.12.24"
+      - run: uv sync --locked --python 3.13
+      - run: uv run python submission/minimal.py
+      - run: uv run pytest -q
+      - name: Index four handbooks and run basic RAG
+        env:
+          FOUNDRY_API_KEY: ${{ secrets.FOUNDRY_API_KEY }}
+          FOUNDRY_BASE_URL: ${{ vars.FOUNDRY_BASE_URL }}
+          FOUNDRY_MODEL: ${{ vars.FOUNDRY_MODEL }}
+        run: uv run python -m submission.demo
+      - name: Evaluate retrieval and generated answers
+        env:
+          FOUNDRY_API_KEY: ${{ secrets.FOUNDRY_API_KEY }}
+          FOUNDRY_BASE_URL: ${{ vars.FOUNDRY_BASE_URL }}
+          FOUNDRY_MODEL: ${{ vars.FOUNDRY_MODEL }}
+        run: uv run pytest -q -s submission/test_handbook.py
