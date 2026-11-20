@@ -10,6 +10,12 @@ import pytest
 
 from relocation_rag import generate_answer
 
+CHUNK_ID = "rel-103-claims-2026/REL-103.3/1"
+
+
+def claim_response(text, *ids):
+    return json.dumps({"claims": [{"text": text, "source_ids": ids}], "missing_evidence": None})
+
 
 @pytest.fixture
 def foundry_settings(monkeypatch):
@@ -23,6 +29,7 @@ def foundry_settings(monkeypatch):
         assert as_of == generate_answer.date.today()
         assert question == "Can I file after 45 days?"
         return {
+            "ids": [[CHUNK_ID]],
             "documents": [["Submit the claim within 30 calendar days."]],
             "metadatas": [
                 [
@@ -71,9 +78,8 @@ def test_generates_cited_answer_and_logs_usage(
                             "content": [
                                 {
                                     "type": "output_text",
-                                    "text": "The filing window is 30 calendar days.",
+                                    "text": claim_response("The filing window is 30 calendar days.", CHUNK_ID),
                                 },
-                                {"type": "output_text", "text": citation},
                             ],
                         },
                     ],
@@ -86,7 +92,7 @@ def test_generates_cited_answer_and_logs_usage(
     with caplog.at_level("INFO"):
         answer = generate_answer.generate_answer("Can I file after 45 days?")
 
-    assert answer == f"The filing window is 30 calendar days.\n{citation}"
+    assert answer == f"The filing window is 30 calendar days. {citation}"
     assert "1000 input tokens, 200 output tokens" in caplog.text
     assert "$0.000270 USD" in caplog.text
 
@@ -112,7 +118,7 @@ def test_cli_prints_answer_to_stdout(
                             "content": [
                                 {
                                     "type": "output_text",
-                                    "text": "The filing window is 30 calendar days.",
+                                    "text": claim_response("The filing window is 30 calendar days.", CHUNK_ID),
                                 }
                             ],
                         }
@@ -135,7 +141,7 @@ def test_cli_prints_answer_to_stdout(
 
     captured = capsys.readouterr()
     answer = "The filing window is 30 calendar days."
-    assert captured.out == f"{answer}\n"
+    assert captured.out == f"{answer} [REL-103.3 | rel-103-claims-2026.md | effective 2026-01-01]\n"
     assert answer not in captured.err
     assert answer not in caplog.text
     if expect_usage:
@@ -219,18 +225,25 @@ def test_search_loop_returns_evidence_and_stops_at_budget(foundry_settings, monk
 
     def context(query, as_of):
         queries.append((query, as_of.isoformat()))
-        return f"Evidence for {query}"
+        chunk = "record" if query == "case question" else "rule"
+        return {
+            "ids": [[chunk]],
+            "documents": [[f"Evidence for {chunk}"]],
+            "metadatas": [[{"source": f"{chunk}.md", "section": "A", "effective_date": "2025-01-01"}]],
+        }
 
     def urlopen(request, *, timeout):
         body = json.loads(request.data)
         requests.append(body)
         turn = len(requests)
         if turn > 1:
-            assert body["input"][-1] == {
-                "type": "function_call_output",
-                "call_id": f"call-{turn - 1}",
-                "output": f"Evidence for policy {turn - 1}",
-            }
+            tool_result = body["input"][-1]
+            assert tool_result["type"] == "function_call_output"
+            assert tool_result["call_id"] == f"call-{turn - 1}"
+            assert "Source ID: rule" in tool_result["output"]
+        ids = body["text"]["format"]["schema"]["properties"]["claims"]["items"]["properties"]["source_ids"]["items"]["enum"]
+        assert ids == (["record"] if turn == 1 else ["record", "rule"])
+        if turn > 1:
             assert body["input"][-3]["encrypted_content"] == "reasoning state"
         if turn <= generate_answer.MAX_FOLLOWUP_SEARCHES:
             assert body["tool_choice"] == "auto"
@@ -243,12 +256,35 @@ def test_search_loop_returns_evidence_and_stops_at_budget(foundry_settings, monk
             ]
         else:
             assert body["tool_choice"] == "none"
-            output = [{"type": "message", "content": [{"type": "output_text", "text": "Done"}]}]
+            output = [{"type": "message", "content": [{"type": "output_text", "text": claim_response("Done", "record", "rule")}]}]
         return BytesIO(json.dumps({"status": "completed", "output": output}).encode())
 
-    monkeypatch.setattr(generate_answer, "_policy_context", context)
+    monkeypatch.setattr(generate_answer, "retrieve_policy", context)
     monkeypatch.setattr(urllib.request, "urlopen", urlopen)
-    assert generate_answer.generate_answer("case question") == "Done"
+    assert generate_answer.generate_answer("case question") == (
+        "Done [A | record.md | effective 2025-01-01] [A | rule.md | effective 2025-01-01]"
+    )
     assert queries == [("case question", generate_answer.date.today().isoformat()),
                        ("policy 1", "2025-12-29"), ("policy 2", "2025-12-29"),
                        ("policy 3", "2025-12-29")]
+
+
+@pytest.mark.parametrize(("payload", "error"), [
+    (claim_response("Approved", "unseen"), "unknown source ID"),
+    (claim_response("Approved"), "requires supporting source IDs"),
+    ('{"claims": [], "missing_evidence": null}', "neither supported claims"),
+])
+def test_invalid_attribution_is_rejected(foundry_settings, monkeypatch, payload, error):
+    monkeypatch.setattr(generate_answer.FoundryClient, "response_items", lambda *a, **kw: [
+        {"type": "message", "content": [{"type": "output_text", "text": payload}]}
+    ])
+    with pytest.raises(ValueError, match=error):
+        generate_answer.generate_answer("Can I file after 45 days?")
+
+
+def test_unanswerable_question_reports_gap(foundry_settings, monkeypatch):
+    payload = json.dumps({"claims": [], "missing_evidence": "The filing date."})
+    monkeypatch.setattr(generate_answer.FoundryClient, "response_items", lambda *a, **kw: [
+        {"type": "message", "content": [{"type": "output_text", "text": payload}]}
+    ])
+    assert generate_answer.generate_answer("Can I file after 45 days?") == "Missing evidence: The filing date."
