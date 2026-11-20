@@ -2,6 +2,8 @@
 
 North Alder Instruments | Effective January 1, 2025
 
+Valid until: 2026-01-01
+
 ## REL-103.1 Preparing the claim
 
 Open the relocation claim form in the employee expense portal. Enter the transfer reference from your written move authorization and the move completion date recorded by People Operations. This is the date you arrived at the destination to take up residence. If the date displayed in the portal differs from your records, contact People Operations for a correction. Use the authorization and any written amendments to identify the categories available for the transfer.

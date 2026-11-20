@@ -62,6 +62,10 @@ filename, section ID, and effective date are stored in the
 Hybrid search computes BM25 scores over the current Chroma documents in memory
 for each query. It matches individual words case-insensitively and treats codes
 such as ADV-4 and REL-105.1 as whole tokens.
+Vector search and BM25 both filter all chunks by validity before ranking.
+The first search uses today's date. For historical claims, the model can pass
+the recorded completion date as `as_of` to `search_corpus`. Later searches
+inherit that date until the model supplies another one.
 Chunks found by both searches come first, in vector order. Keyword-only chunks
 follow in BM25 score order (ties use chunk ID), then the remaining vector hits in their original order.
 Each chunk appears once.

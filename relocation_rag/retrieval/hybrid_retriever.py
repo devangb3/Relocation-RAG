@@ -6,7 +6,7 @@ class HybridRetriever(VectorRetriever):
     def search(self, query: str, k: int = 10) -> RetrievedChunks:
         results = super().search(query, k)
 
-        chunks = self.collection.get(include=["documents", "metadatas"])
+        chunks = self.collection.get(where=self.where, include=["documents", "metadatas"])
         documents = dict(zip(chunks["ids"], chunks["documents"], strict=True))
         metadata = dict(zip(chunks["ids"], chunks["metadatas"], strict=True))
 

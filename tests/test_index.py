@@ -41,6 +41,9 @@ def test_reindex_updates_citations_and_removes_only_superseded_chunks(
             "A Filing\n\nDays is 45.",
             {
                 "source": "claims.md",
+                "policy_id": "Claims",
+                "effective_from": 20260101,
+                "effective_to": 100000000,
                 "section": "A",
                 "effective_date": "2026-01-01",
                 "table_number": 1,
@@ -52,6 +55,9 @@ def test_reindex_updates_citations_and_removes_only_superseded_chunks(
             "A Travel\n\nKeep receipts.",
             {
                 "source": "travel.md",
+                "policy_id": "Claims",
+                "effective_from": 20250101,
+                "effective_to": 100000000,
                 "section": "A",
                 "effective_date": "2025-01-01",
             },
