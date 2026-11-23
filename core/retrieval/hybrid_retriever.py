@@ -1,5 +1,5 @@
-from relocation_rag.retrieval.bm25 import rank_chunks_keyword
-from relocation_rag.retrieval.vector_retriever import RetrievedChunks, VectorRetriever
+from core.retrieval.bm25 import rank_chunks_keyword
+from core.retrieval.vector_retriever import RetrievedChunks, VectorRetriever
 
 
 class HybridRetriever(VectorRetriever):

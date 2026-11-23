@@ -16,7 +16,7 @@ DEFAULT_QUESTION = (
 
 
 def main() -> None:
-    from relocation_rag.generate_answer import main as generate_answer_main
+    from core.generate_answer import main as generate_answer_main
 
     if len(sys.argv) == 1:
         sys.argv.append(DEFAULT_QUESTION)

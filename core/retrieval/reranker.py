@@ -4,8 +4,8 @@ from functools import cache
 
 from sentence_transformers import CrossEncoder
 
-from relocation_rag.retrieval.hybrid_retriever import HybridRetriever
-from relocation_rag.retrieval.vector_retriever import RetrievedChunks
+from core.retrieval.hybrid_retriever import HybridRetriever
+from core.retrieval.vector_retriever import RetrievedChunks
 
 
 @cache

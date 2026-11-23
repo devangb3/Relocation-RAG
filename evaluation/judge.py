@@ -3,7 +3,7 @@
 import json
 from typing import Literal, TypedDict
 
-from relocation_rag.foundry import FoundryClient
+from core.foundry import FoundryClient
 
 from .models import PolicyCase
 

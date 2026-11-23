@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from relocation_rag.chunking import chunk_policy
+from core.chunking import chunk_policy
 
 
 def write_policy(path: Path, sections: str) -> Path:

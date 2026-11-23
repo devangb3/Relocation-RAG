@@ -5,8 +5,8 @@ from unittest.mock import Mock
 import chromadb
 import pytest
 
-from relocation_rag import index
-from relocation_rag.retrieval.vector_retriever import VectorRetriever
+from core import index
+from core.retrieval.vector_retriever import VectorRetriever
 
 
 @pytest.fixture

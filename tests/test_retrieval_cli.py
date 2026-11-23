@@ -4,7 +4,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from relocation_rag import embeddings, retrieval
+from core import embeddings, retrieval
 
 
 @pytest.mark.parametrize(
@@ -31,7 +31,7 @@ def test_cli_uses_selected_backend_and_prints_ranked_ids(
         sys, "argv", ["retrieval", *flags, "When can I file?", "--limit", "2"]
     )
 
-    runpy.run_module("relocation_rag.retrieval.__main__", run_name="__main__")
+    runpy.run_module("core.retrieval.__main__", run_name="__main__")
 
     retriever.assert_called_once_with(collection)
     retriever.return_value.search.assert_called_once_with("When can I file?", 2)

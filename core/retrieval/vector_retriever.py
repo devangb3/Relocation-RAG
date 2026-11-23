@@ -4,7 +4,7 @@ from typing import TypedDict
 from chromadb.api.models.Collection import Collection
 from chromadb.api.types import Metadata
 
-from relocation_rag.embeddings import get_embedding_model
+from core.embeddings import get_embedding_model
 
 
 class RetrievedChunks(TypedDict):
