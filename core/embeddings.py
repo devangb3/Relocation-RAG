@@ -8,7 +8,7 @@ import chromadb
 from chromadb.api.models.Collection import Collection
 from sentence_transformers import SentenceTransformer
 
-from relocation_rag.logging_service import LoggingService
+from core.logging_service import LoggingService
 
 MODEL_NAME = "sentence-transformers/all-MiniLM-L6-v2"
 

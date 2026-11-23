@@ -33,7 +33,7 @@ jobs:
         run: uv run ruff check .
 
       - name: Build policy index for evaluation
-        run: uv run --locked python -m relocation_rag.index
+        run: uv run --locked python -m core.index
 
       - name: Evaluate retrieval recall
         run: uv run --locked pytest -q -s evaluation -k recall
@@ -52,9 +52,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: docker compose build
-      - run: docker compose run --rm -T rag relocation_rag.index
+      - run: docker compose run --rm -T rag core.index
       - name: Query the persisted index from a fresh container
         run: |
-          results=$(docker compose run --rm -T rag relocation_rag.retrieval "Which form do I use to request a relocation advance?")
+          results=$(docker compose run --rm -T rag core.retrieval "Which form do I use to request a relocation advance?")
           echo "$results"
           grep -F 'rel-101-transfer-approval/REL-105.1/' <<< "$results"

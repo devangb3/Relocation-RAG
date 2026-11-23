@@ -5,7 +5,7 @@ import os
 import sys
 import warnings
 
-_PACKAGE_LOGGER = "relocation_rag"
+_PACKAGE_LOGGER = "core"
 _LOG_FORMAT = "%(levelname)s %(message)s"
 _LEVEL_NAMES = frozenset({"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"})
 
@@ -30,7 +30,7 @@ class _QuietLogger(logging.Logger):
 
 
 class LoggingService:
-    """Send relocation_rag diagnostics to stderr and hide every other logger.
+    """Send core diagnostics to stderr and hide every other logger.
 
     Libraries such as Torch and Hugging Face attach their own handlers, and
     some of them log while they are imported. Construction installs a quiet

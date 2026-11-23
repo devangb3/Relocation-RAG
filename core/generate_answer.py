@@ -4,10 +4,10 @@ import argparse
 import json
 from datetime import date
 
-from relocation_rag.foundry import FoundryClient
-from relocation_rag.logging_service import LoggingService
-from relocation_rag.retrieval import retrieve_policy
-from relocation_rag.source_map import SourceMap
+from core.foundry import FoundryClient
+from core.logging_service import LoggingService
+from core.retrieval import retrieve_policy
+from core.source_map import SourceMap
 
 MAX_FOLLOWUP_SEARCHES = 3
 

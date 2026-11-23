@@ -2,8 +2,8 @@
 
 import pytest
 
-from relocation_rag.generate_answer import generate_answer
-from relocation_rag.retrieval import retrieve_policy
+from core.generate_answer import generate_answer
+from core.retrieval import retrieve_policy
 
 from .cases import CASES
 from .judge import judge_answer

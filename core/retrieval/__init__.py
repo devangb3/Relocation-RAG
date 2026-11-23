@@ -2,10 +2,10 @@
 
 from datetime import date
 
-from relocation_rag.embeddings import get_policy_collection
-from relocation_rag.retrieval.hybrid_retriever import HybridRetriever
-from relocation_rag.retrieval.reranker import RerankedRetriever
-from relocation_rag.retrieval.vector_retriever import RetrievedChunks, VectorRetriever
+from core.embeddings import get_policy_collection
+from core.retrieval.hybrid_retriever import HybridRetriever
+from core.retrieval.reranker import RerankedRetriever
+from core.retrieval.vector_retriever import RetrievedChunks, VectorRetriever
 
 __all__ = ["HybridRetriever", "RerankedRetriever", "VectorRetriever", "retrieve_policy"]
 

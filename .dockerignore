@@ -2,8 +2,8 @@
 !Dockerfile
 !pyproject.toml
 !uv.lock
-!relocation_rag/
-!relocation_rag/**
+!core/
+!core/**
 !data/
 !data/policies/
 !data/policies/*.md

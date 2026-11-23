@@ -1,4 +1,4 @@
-from relocation_rag.retrieval.bm25 import rank_chunks_keyword
+from core.retrieval.bm25 import rank_chunks_keyword
 
 
 def test_bm25_accounts_for_length_frequency_and_exact_identifiers():

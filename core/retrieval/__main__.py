@@ -2,8 +2,8 @@
 
 import argparse
 
-from relocation_rag.embeddings import get_policy_collection
-from relocation_rag.retrieval import HybridRetriever, RerankedRetriever, VectorRetriever
+from core.embeddings import get_policy_collection
+from core.retrieval import HybridRetriever, RerankedRetriever, VectorRetriever
 
 
 def main() -> None:

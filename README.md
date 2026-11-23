@@ -14,8 +14,8 @@ for the initial dependency and model downloads.
 
 ```sh
 docker compose build
-docker compose run --rm rag relocation_rag.index
-docker compose run --rm rag relocation_rag.retrieval "Which policy mentions ADV-4?"
+docker compose run --rm rag core.index
+docker compose run --rm rag core.retrieval "Which policy mentions ADV-4?"
 ```
 
 The application runs as a non-root CLI process. Each command exits when it
@@ -29,7 +29,7 @@ To generate an answer, copy `.env.example` to `.env`, fill in your Foundry
 deployment details, and pass that file to the answer command at runtime:
 
 ```sh
-docker compose run --rm --env-from-file .env rag relocation_rag.generate_answer \
+docker compose run --rm --env-from-file .env rag core.generate_answer \
   "Which form do I need for a relocation advance?"
 ```
 
@@ -43,7 +43,7 @@ uv sync --locked
 
 ## Index the policies
 
-From the repository root, run `uv run --locked python -m relocation_rag.index`.
+From the repository root, run `uv run --locked python -m core.index`.
 `sentence-transformers/all-MiniLM-L6-v2` from Hugging Face is used as the local embedding model for both passages and queries.
 
 The chunker targets 160 MiniLM tokens per chunk, including the section heading and
@@ -82,7 +82,7 @@ source map, keyed by the IDs of chunks supplied across all searches. Foundry
 returns each claim with its supporting IDs. The application validates those IDs
 and displays the indexed section, filename, and effective date beside the claim.
 
-Inspect the same ranking with `uv run --locked python -m relocation_rag.retrieval "Which policy mentions ADV-4?"`.
+Inspect the same ranking with `uv run --locked python -m core.retrieval "Which policy mentions ADV-4?"`.
 Use `--hybrid-only` or `--vector-only` for the earlier rankings. The CLI's
 `--limit` controls the number returned (default 10). In reranked mode the default k = 30.
 
@@ -94,7 +94,7 @@ without `/openai/v1`, and the name of a model deployment that supports the
 Responses API. [Microsoft Foundry Responses API](https://learn.microsoft.com/azure/foundry/openai/how-to/responses)
 
 ```sh
-uv run --locked --env-file .env python -m relocation_rag.generate_answer \
+uv run --locked --env-file .env python -m core.generate_answer \
   "My approved move was completed 45 days ago. Under the current policy, am I still within the filing window?"
 ```
 
@@ -112,7 +112,7 @@ uv run ruff check .
 Run pytest coverage
 
 ```sh
-uv run --with pytest-cov pytest --cov=relocation_rag --cov-report=term-missing
+uv run --with pytest-cov pytest --cov=core --cov-report=term-missing
 ```
 
 To run the nine-question policy evaluation, build the index and configure Foundry

@@ -8,7 +8,7 @@ from urllib.error import HTTPError
 
 import pytest
 
-from relocation_rag import generate_answer
+from core import generate_answer
 
 CHUNK_ID = "rel-103-claims-2026/REL-103.3/1"
 
@@ -43,7 +43,7 @@ def foundry_settings(monkeypatch):
         }
 
     monkeypatch.setattr(generate_answer, "retrieve_policy", retrieve_policy)
-    monkeypatch.setattr("relocation_rag.retrieval.retrieve_policy", retrieve_policy)
+    monkeypatch.setattr("core.retrieval.retrieve_policy", retrieve_policy)
 
 
 @pytest.mark.parametrize("base_path", ["", "/openai/v1/"])
@@ -103,7 +103,7 @@ def test_cli_prints_answer_to_stdout(
 ):
     monkeypatch.setenv("LOG_LEVEL", log_level)
     monkeypatch.setattr(
-        sys, "argv", ["relocation_rag.generate_answer", "Can I file after 45 days?"]
+        sys, "argv", ["core.generate_answer", "Can I file after 45 days?"]
     )
 
     def urlopen(request, *, timeout):
@@ -130,7 +130,7 @@ def test_cli_prints_answer_to_stdout(
 
     monkeypatch.setattr(urllib.request, "urlopen", urlopen)
     root_logger = logging.getLogger()
-    package_logger = logging.getLogger("relocation_rag")
+    package_logger = logging.getLogger("core")
     previous = (root_logger.level, package_logger.level, list(root_logger.handlers))
     try:
         runpy.run_path(generate_answer.__file__, run_name="__main__")

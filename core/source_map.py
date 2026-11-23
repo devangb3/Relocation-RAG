@@ -4,7 +4,7 @@ import json
 from dataclasses import dataclass
 from datetime import date
 
-from relocation_rag.retrieval.vector_retriever import RetrievedChunks
+from core.retrieval.vector_retriever import RetrievedChunks
 
 
 @dataclass(frozen=True)
@@ -29,7 +29,7 @@ class SourceMap:
         documents = results["documents"]
         if not documents or not documents[0]:
             raise ValueError(
-                "No policy passages found. Run python -m relocation_rag.index first."
+                "No policy passages found. Run python -m core.index first."
             )
         if not results.get("metadatas") or not results.get("ids"):
             raise ValueError(

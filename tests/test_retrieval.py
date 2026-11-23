@@ -2,7 +2,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from relocation_rag import retrieval
+from core import retrieval
 
 
 @pytest.mark.parametrize(
@@ -32,7 +32,7 @@ def test_hybrid_merge_preserves_citations(monkeypatch, question, expected):
         "documents": list(docs.values()),
         "metadatas": [{"section": key} for key in docs],
     }
-    monkeypatch.setattr("relocation_rag.retrieval.vector_retriever.get_embedding_model", Mock())
+    monkeypatch.setattr("core.retrieval.vector_retriever.get_embedding_model", Mock())
     result = retrieval.HybridRetriever(collection).search(question, k=3)
     assert result == {
         "ids": [expected],
@@ -48,7 +48,7 @@ def test_reranker_selects_aligned_citations_and_preserves_ties(monkeypatch):
     monkeypatch.setattr(retrieval.HybridRetriever, "search", hybrid)
     model = Mock()
     model.predict.return_value = [0, 2, 2]
-    monkeypatch.setattr("relocation_rag.retrieval.reranker.get_reranker", lambda: model)
+    monkeypatch.setattr("core.retrieval.reranker.get_reranker", lambda: model)
     result = retrieval.RerankedRetriever(Mock()).search("question", 2)
     hybrid.assert_called_once_with("question", 30)
     model.predict.assert_called_once_with(
@@ -61,7 +61,7 @@ def test_reranker_selects_aligned_citations_and_preserves_ties(monkeypatch):
 @pytest.mark.parametrize(("query", "limit"), [("  ", 1), ("policy", 0)])
 def test_vector_search_rejects_invalid_input_before_embedding(monkeypatch, query, limit):
     model = Mock()
-    monkeypatch.setattr("relocation_rag.retrieval.vector_retriever.get_embedding_model", model)
+    monkeypatch.setattr("core.retrieval.vector_retriever.get_embedding_model", model)
     with pytest.raises(ValueError, match="nonblank query and a positive limit"):
         retrieval.VectorRetriever(Mock()).search(query, limit)
     model.assert_not_called()
@@ -73,7 +73,7 @@ def test_vector_search_requires_documents_and_citations(monkeypatch, missing_fie
     response = {"ids": [["id"]], "documents": [["text"]], "metadatas": [[{"source": "policy"}]]}
     response[missing_field] = None
     collection.query.return_value = response
-    monkeypatch.setattr("relocation_rag.retrieval.vector_retriever.get_embedding_model", Mock())
+    monkeypatch.setattr("core.retrieval.vector_retriever.get_embedding_model", Mock())
     with pytest.raises(RuntimeError, match="no documents or metadata"):
         retrieval.VectorRetriever(collection).search("question")
 
@@ -82,6 +82,6 @@ def test_empty_retrieval_skips_reranking(monkeypatch):
     empty = {"ids": [[]], "documents": [[]], "metadatas": [[]]}
     monkeypatch.setattr(retrieval.HybridRetriever, "search", Mock(return_value=empty))
     get_model = Mock()
-    monkeypatch.setattr("relocation_rag.retrieval.reranker.get_reranker", get_model)
+    monkeypatch.setattr("core.retrieval.reranker.get_reranker", get_model)
     assert retrieval.RerankedRetriever(Mock()).search("question") == empty
     get_model.assert_not_called()

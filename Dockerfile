@@ -12,8 +12,8 @@ ENV PATH="/app/.venv/bin:$PATH" \
     PYTHONUNBUFFERED=1
 RUN useradd --create-home --uid 10001 rag \
     && install -d -o rag -g rag /app/.chroma "$HF_HOME"
-COPY relocation_rag/ relocation_rag/
+COPY core/ core/
 COPY data/policies/ data/policies/
 USER rag
 ENTRYPOINT ["python", "-m"]
-CMD ["relocation_rag.retrieval", "--help"]
+CMD ["core.retrieval", "--help"]

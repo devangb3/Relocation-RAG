@@ -6,7 +6,7 @@ import pytest
 from huggingface_hub.utils import are_progress_bars_disabled
 from transformers.utils.logging import is_progress_bar_enabled
 
-from relocation_rag.logging_service import LoggingService
+from core.logging_service import LoggingService
 
 _LIBRARIES = ("huggingface_hub", "sentence_transformers", "transformers")
 
@@ -14,7 +14,7 @@ _LIBRARIES = ("huggingface_hub", "sentence_transformers", "transformers")
 @pytest.fixture
 def restore_logging():
     root = logging.getLogger()
-    package = logging.getLogger("relocation_rag")
+    package = logging.getLogger("core")
     previous_class = logging.getLoggerClass()
     previous_filters = warnings.filters[:]
     previous_root = (root.level, list(root.handlers))
@@ -40,11 +40,11 @@ def restore_logging():
 
 
 def test_index_messages_stay_visible(monkeypatch, capsys, restore_logging):
-    from relocation_rag.index import logger as index_logger
+    from core.index import logger as index_logger
 
     monkeypatch.setenv("LOG_LEVEL", "INFO")
     LoggingService()
-    assert index_logger.name == "relocation_rag.index"
+    assert index_logger.name == "core.index"
     logging.getLogger("__main__").info("Indexed all policies.")
     index_logger.info("Indexed all policies.")
 
@@ -63,7 +63,7 @@ def test_package_level_does_not_open_library_info(monkeypatch, restore_logging):
     monkeypatch.setenv("LOG_LEVEL", "DEBUG")
     LoggingService()
 
-    assert logging.getLogger("relocation_rag").level == logging.DEBUG
+    assert logging.getLogger("core").level == logging.DEBUG
     assert logging.getLogger().level == logging.WARNING
     library = logging.getLogger("sentence_transformers")
     assert library.level != logging.ERROR
@@ -80,7 +80,7 @@ def test_initialization_hides_foreign_logs(monkeypatch, capsys, restore_logging)
         "NOTE: Redirects are currently not supported in MacOs."
     )
     logging.getLogger("some.other.package").error("library failure")
-    logging.getLogger("relocation_rag.generate_answer").info(
+    logging.getLogger("core.generate_answer").info(
         "Foundry usage: 1 input tokens, 1 output tokens"
     )
 

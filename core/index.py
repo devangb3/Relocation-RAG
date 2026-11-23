@@ -2,11 +2,11 @@ import logging
 from dataclasses import asdict
 from pathlib import Path
 
-from relocation_rag.chunking import chunk_policy
-from relocation_rag.embeddings import get_embedding_model, get_policy_collection
-from relocation_rag.logging_service import LoggingService
+from core.chunking import chunk_policy
+from core.embeddings import get_embedding_model, get_policy_collection
+from core.logging_service import LoggingService
 
-logger = logging.getLogger("relocation_rag.index")
+logger = logging.getLogger("core.index")
 
 def index_policy(path: Path) -> None:
     model = get_embedding_model()
