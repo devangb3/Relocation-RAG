@@ -6,6 +6,8 @@ The policies are chunked, embedded locally, and stored in Chroma. The assistant 
 
 Dependencies are managed with [uv](https://docs.astral.sh/uv/). Continuous integration installs the locked environment and runs the test suite.
 
+![Relocation RAG architecture showing policy indexing, hybrid retrieval, and cited answer generation](docs/architecture.png)
+
 ## Run with Docker Compose
 
 From the repository root, build the image, index the bundled policies, and run a
